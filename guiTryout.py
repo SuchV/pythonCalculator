@@ -1,4 +1,3 @@
-import logging
 from PyQt5 import  QtGui
 from PyQt5.QtWidgets import (
     QApplication,
@@ -9,17 +8,28 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QGridLayout
 )
-import sys
+import sys, logging
 
 #add other variable that holds whole operation as a string and put it somewhere, ...
 # ...instead of only the result
 
-
 class MyButton(QPushButton):
-    def __init__(self, name=None, additional_arg=None):
+    def __init__(self, name):
         super().__init__()
         self.name = name
-        self.additional_arg = additional_arg
+        
+    equation = ""
+    result = 0
+        
+    def print_equation(self, resultWindow, name, printable, operation_type):
+        if printable:
+                self.equation +=name
+                resultWindow.setText(self.equation)
+        
+        if operation_type == "number":
+            self.result += int(name)
+                
+
             
 class  Window(QWidget):
     def __init__(self):
@@ -28,6 +38,7 @@ class  Window(QWidget):
         self.initUI()
         
     def initUI(self):
+        
         # Create an outer layout
         outerLayout = QVBoxLayout()
         
@@ -35,9 +46,14 @@ class  Window(QWidget):
         topLayout = QFormLayout()
         
         # Add a label and a line edit to the layout
-        result = QLineEdit()
-        result.setReadOnly(True)
-        topLayout.addRow("Result:", result)
+        equationWindow = QLineEdit()
+        equationWindow.setReadOnly(True)
+        topLayout.addRow("Equation:", equationWindow)
+        
+        # Add a label and a line edit to the layout
+        resultWindow = QLineEdit()
+        resultWindow.setReadOnly(True)
+        topLayout.addRow("Result:", resultWindow)
         
         # Create a layout for the buttons
         optionsLayout = QGridLayout()
@@ -46,40 +62,72 @@ class  Window(QWidget):
         # Loop adding numerical buttons (1:9)
         for x in range(2,-1,-1):
             for y in range(0,3):
-                optionsLayout.addWidget(MyButton(f"{y*3+x+1}",f"b_num{y*3+x+1}"),y,x)
+                button = MyButton(f"{y*3+x+1}")
+                button.setText(f"{y*3+x+1}")
+                optionsLayout.addWidget(button, y, x)
+                button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, printable=True, operation_type = "number"))
         
         # Loop adding basic arithemtic buttons
         for x in range(4):
-            y=x
             match x:
                 case 0:
-                    optionsLayout.addWidget(QPushButton("+"),3,x)
-                    optionsLayout.addWidget(QPushButton("clear"),x,3)
+                    button = MyButton("+")
+                    button.setText("+")
+                    optionsLayout.addWidget(button,3,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, printable=True))
+                    
+                    button = MyButton("clear")
+                    button.setText("clear")
+                    optionsLayout.addWidget(button,x,3)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
+                    
+                    button = MyButton("*")
+                    button.setText("*")
+                    optionsLayout.addWidget(button,4,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
                 case 1:
-                    optionsLayout.addWidget(QPushButton("0"),3,x)
-                    optionsLayout.addWidget(QPushButton("back"),x,3)
+                    button = MyButton("0")
+                    button.setText("0")
+                    optionsLayout.addWidget(button,3,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name))
+                    
+                    button = MyButton("back")
+                    button.setText("back")
+                    optionsLayout.addWidget(button,x,3)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
+                    
+                    button = MyButton(".")
+                    button.setText(".")
+                    optionsLayout.addWidget(button,4,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
                 case 2:
-                    optionsLayout.addWidget(QPushButton("-"),3,x) 
-                    optionsLayout.addWidget(QPushButton("reset"),x,3)
+                    button = MyButton("-")
+                    button.setText("-")
+                    optionsLayout.addWidget(button,3,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))                     
+                    
+                    button = MyButton("reset")
+                    button.setText("reset")
+                    optionsLayout.addWidget(button,x,3)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value)) 
+                    
+                    button = MyButton("/")
+                    button.setText("/")
+                    optionsLayout.addWidget(button,4,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))         
                 case 3:
-                    optionsLayout.addWidget(QPushButton("="),3,x)
+                    button = MyButton("=")
+                    button.setText("=")
+                    optionsLayout.addWidget(button,3,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value)) 
+                    
+                    button = MyButton("\u221A")
+                    button.setText("\u221A")
+                    optionsLayout.addWidget(button,4,x)
+                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))   
                 case _:
                     logging.warning("Arithmetic button adder error!")
-            match y:
-                case 0:
-                    optionsLayout.addWidget(QPushButton("*"),4,x)
-                case 1:
-                    optionsLayout.addWidget(QPushButton("."),4,x)
-                case 2:
-                    optionsLayout.addWidget(QPushButton("/"),4,x) 
-                case 3:
-                    optionsLayout.addWidget(QPushButton("\u221A"),4,x)
-                case _:
-                    logging.warning("Arithmetic button adder error!")
-            
-        # b_num_1 = QPushButton("1")
-        # b_num_1.setAccessibleName("b_num_1")
-        # b_num_1.pressed.connect(lambda: self.add_user_operation(result)
+                    
         
         # # Nest the inner layouts into the outer layout
         outerLayout.addLayout(topLayout)
@@ -87,11 +135,6 @@ class  Window(QWidget):
         
         # Set the window's main layout
         self.setLayout(outerLayout)
-
-    def add_user_operation(self, result, name):
-        result.setText(f"Button {name} pressed")
-        
-
 
 def main():
     app = QApplication(sys.argv)
