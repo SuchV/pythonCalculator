@@ -1,4 +1,5 @@
 from PyQt5 import  QtGui
+from copy import deepcopy
 from PyQt5.QtWidgets import (
     QApplication,
     QFormLayout,
@@ -12,24 +13,72 @@ import sys, logging
 
 #add other variable that holds whole operation as a string and put it somewhere, ...
 # ...instead of only the result
+#Temporary solution using global variables
 
-class MyButton(QPushButton):
+historyWindow_value = ""
+resultWindow_value = ""
+
+
+class NumberButton(QPushButton):
     def __init__(self, name):
         super().__init__()
         self.name = name
         
-    equation = ""
-    result = 0
+    l_value = ""
+    r_value = ""
+    temp = ""
+    
         
-    def print_equation(self, resultWindow, name, printable, operation_type):
-        if printable:
-                self.equation +=name
-                resultWindow.setText(self.equation)
+    def take_number(self, historyWindow, name, historyWindow_value):
+        if OperationButton.op_type == "none":
+            historyWindow_value = historyWindow.text()
+            historyWindow_value += name
+            NumberButton.l_value = historyWindow_value
+            historyWindow.setText(historyWindow_value)
+            print(NumberButton.l_value)
+        else:
+            historyWindow_value = historyWindow.text()
+            NumberButton.temp += name
+            NumberButton.r_value = NumberButton.temp
+            historyWindow_value += NumberButton.r_value
+            historyWindow.setText(historyWindow_value)
+            print(NumberButton.r_value)
         
-        if operation_type == "number":
-            self.result += int(name)
-                
-
+        
+class OperationButton(QPushButton):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+    
+    op_type = "none"
+        
+    # [IDEA] doesnt work when you add - or + before any number is given
+    def take_operator(self, historyWindow, name, historyWindow_value):
+        if OperationButton.op_type ==  "none":
+            historyWindow_value = historyWindow.text()
+            historyWindow_value += name
+            OperationButton.op_type = name
+            historyWindow.setText(historyWindow_value)
+            
+    def equals_operation(self, resultWindow, resultWindow_value):
+        if OperationButton.op_type == "+":
+            print(NumberButton.l_value)
+            resultWindow_value = float(NumberButton.l_value) + float(NumberButton.r_value)
+            resultWindow.setText(str(resultWindow_value))
+        elif OperationButton.op_type == "-":
+            resultWindow_value = float(NumberButton.l_value) - float(NumberButton.r_value)
+            resultWindow.setText(str(resultWindow_value))
+        elif OperationButton.op_type == "*":
+            resultWindow_value = float(NumberButton.l_value) * float(NumberButton.r_value)
+            resultWindow.setText(str(resultWindow_value))
+        elif OperationButton.op_type == "/":
+            resultWindow_value = float(NumberButton.l_value) / float(NumberButton.r_value)
+            resultWindow.setText(str(resultWindow_value))
+        else:
+            logging.warning("Equals operation error!")
+        OperationButton.op_type = ""
+            
+            
             
 class  Window(QWidget):
     def __init__(self):
@@ -46,9 +95,9 @@ class  Window(QWidget):
         topLayout = QFormLayout()
         
         # Add a label and a line edit to the layout
-        equationWindow = QLineEdit()
-        equationWindow.setReadOnly(True)
-        topLayout.addRow("Equation:", equationWindow)
+        historyWindow = QLineEdit()
+        historyWindow.setReadOnly(True)
+        topLayout.addRow("Equation:", historyWindow)
         
         # Add a label and a line edit to the layout
         resultWindow = QLineEdit()
@@ -62,69 +111,70 @@ class  Window(QWidget):
         # Loop adding numerical buttons (1:9)
         for x in range(2,-1,-1):
             for y in range(0,3):
-                button = MyButton(f"{y*3+x+1}")
-                button.setText(f"{y*3+x+1}")
-                optionsLayout.addWidget(button, y, x)
-                button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, printable=True, operation_type = "number"))
+                buttonN = NumberButton(f"{y*3+x+1}")
+                buttonN.setText(f"{y*3+x+1}")
+                optionsLayout.addWidget(buttonN, y, x)
+                buttonN.pressed.connect(lambda name=buttonN.name: buttonN.take_number(historyWindow, name, historyWindow_value))
         
         # Loop adding basic arithemtic buttons
         for x in range(4):
             match x:
                 case 0:
-                    button = MyButton("+")
+                    button = OperationButton("+")
                     button.setText("+")
                     optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, printable=True))
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                     
-                    button = MyButton("clear")
+                    button = OperationButton("clear")
                     button.setText("clear")
                     optionsLayout.addWidget(button,x,3)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                     
-                    button = MyButton("*")
+                    button = OperationButton("*")
                     button.setText("*")
                     optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                 case 1:
-                    button = MyButton("0")
-                    button.setText("0")
-                    optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name))
+                    buttonN = NumberButton("0")
+                    buttonN.setText("0")
+                    optionsLayout.addWidget(buttonN,3,x)
+                    buttonN.pressed.connect(lambda name=buttonN.name: buttonN.take_number(historyWindow, name, historyWindow_value))
                     
-                    button = MyButton("back")
+                    button = OperationButton("back")
                     button.setText("back")
                     optionsLayout.addWidget(button,x,3)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                     
-                    button = MyButton(".")
+                    button = NumberButton(".")
                     button.setText(".")
                     optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))
+                    button.pressed.connect(lambda name=button.name: button.take_number(historyWindow, name, historyWindow_value))
                 case 2:
-                    button = MyButton("-")
+                    button = OperationButton("-")
                     button.setText("-")
                     optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))                     
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))                     
                     
-                    button = MyButton("reset")
+                    button = OperationButton("reset")
                     button.setText("reset")
                     optionsLayout.addWidget(button,x,3)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value)) 
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                     
-                    button = MyButton("/")
+                    button = OperationButton("/")
                     button.setText("/")
                     optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))         
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))        
                 case 3:
-                    button = MyButton("=")
+                    button = OperationButton("=")
                     button.setText("=")
                     optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value)) 
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
+                    button.pressed.connect(lambda name=button.name: button.equals_operation(resultWindow, resultWindow_value))
                     
-                    button = MyButton("\u221A")
+                    button = OperationButton("\u221A")
                     button.setText("\u221A")
                     optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.print_equation(equationWindow, name, result_value))   
+                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value)) 
                 case _:
                     logging.warning("Arithmetic button adder error!")
                     
