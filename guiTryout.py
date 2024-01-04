@@ -1,5 +1,4 @@
 from PyQt5 import  QtGui
-from copy import deepcopy
 from PyQt5.QtWidgets import (
     QApplication,
     QFormLayout,
@@ -14,7 +13,6 @@ import sys, logging
 historyWindow_value = ""
 resultWindow_value = ""
 
-
 class NumberButton(QPushButton):
     def __init__(self, name):
         super().__init__()
@@ -24,54 +22,57 @@ class NumberButton(QPushButton):
     r_value = ""
     temp = ""
         
-    def take_number(self, historyWindow, name, historyWindow_value):
+    def take_number(self, historyWindow, currentEquationWindow, name, historyWindow_value):
         if OperationButton.op_type == "none":
             historyWindow_value = historyWindow.text()
             historyWindow_value += name
             NumberButton.l_value = historyWindow_value
             historyWindow.setText(historyWindow_value)
+            currentEquationWindow.setText(NumberButton.l_value)
         else:
             historyWindow_value = historyWindow.text()
             NumberButton.temp += name
             NumberButton.r_value = NumberButton.temp
             historyWindow_value += name
             historyWindow.setText(historyWindow_value)
+            currentEquationWindow.setText(NumberButton.l_value + OperationButton.op_type + NumberButton.r_value)
             
 class ResetButton(QPushButton):
     def __init__(self, name):
         super().__init__()
         self.name = name
 
-    def reset(self, historyWindow, resultWindow):
+    def reset(self, historyWindow, resultWindow, currentEquationWindow):
         # Reset the text in the history and result windows
         historyWindow.setText("")
         resultWindow.setText("")
-
+        currentEquationWindow.setText("")
+        
         # Reset the variables in the NumberButton and OperationButton classes
         NumberButton.temp = ""
         NumberButton.r_value = ""
         OperationButton.op_type = "none"
         OperationButton.temp = ""
         
-class ClearHistoryButton(QPushButton):
+class ClearButton(QPushButton):
     def __init__(self, name):
         super().__init__()
         self.name = name
 
-    def clear_history(self, historyWindow):
-        # Reset the text in the history window
-        historyWindow.setText("")
+    def clear_equation(self, currentEquationWindow):
+        # Reset the text in the currentEquationWindow
+        currentEquationWindow.setText("")
         
 class BackButton(QPushButton):
     def __init__(self, name):
         super().__init__()
         self.name = name
 
-    def back(self, historyWindow):
+    def back(self, historyWindow, currentEquationWindow):
         # Check if the history window is not empty
         if historyWindow.text():
-            # Remove the last character from the history window
-            historyWindow.setText(historyWindow.text()[:-1])
+            # Remove the last character from  currentEquationwindow
+            currentEquationWindow.setText(currentEquationWindow.text()[:-1])
 
             # Remove the last character from the variables in the NumberButton class
             if NumberButton.temp:
@@ -87,42 +88,54 @@ class OperationButton(QPushButton):
     op_type = "none"
     temp = ""
     
-        
-    # [IDEA] doesnt work when you add - or + before any number is given
-    def take_operator(self, historyWindow, name, historyWindow_value):
+    def take_operator(self, historyWindow, currentEquationWindow, name, historyWindow_value):
         if OperationButton.op_type ==  "none":
                 historyWindow_value = historyWindow.text()
                 historyWindow_value += name
                 historyWindow.setText(historyWindow_value)
+                currentEquationWindow.setText(NumberButton.l_value + name + NumberButton.r_value)
                 OperationButton.op_type = name
             
-    def equals_operation(self, resultWindow, resultWindow_value):
+    def equals_operation(self, resultWindow, currentEquationWindow, resultWindow_value):
         if OperationButton.op_type == "+":
+            if NumberButton.r_value == "": NumberButton.r_value == "0"
             resultWindow_value = float(NumberButton.l_value) + float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+            currentEquationWindow.setText(str(resultWindow_value))
 
         elif OperationButton.op_type == "-":
+            if NumberButton.r_value == "": NumberButton.r_value == "0"
             resultWindow_value = float(NumberButton.l_value) - float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+            currentEquationWindow.setText(str(resultWindow_value))
 
         elif OperationButton.op_type == "*":
+            if NumberButton.r_value == "": NumberButton.r_value == "0"
             resultWindow_value = float(NumberButton.l_value) * float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+            currentEquationWindow.setText(str(resultWindow_value))
 
         elif OperationButton.op_type == "/":
+            if NumberButton.r_value == "": NumberButton.r_value == "0"
             resultWindow_value = float(NumberButton.l_value) / float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+            currentEquationWindow.setText(str(resultWindow_value))
+        
+        elif OperationButton.op_type == "^":
+            if NumberButton.r_value == "": NumberButton.r_value == "0"
+            resultWindow_value = float(NumberButton.l_value) ** float(NumberButton.r_value)
+            resultWindow.setText(str(resultWindow_value))
+            currentEquationWindow.setText(str(resultWindow_value))
 
         else:
-            logging.warning("Equals operation error!")
+            print("Error: No operation selected!")
         
         if NumberButton.r_value != "" and NumberButton.l_value != "":
+            currentEquationWindow.setText(NumberButton.l_value + OperationButton.op_type + NumberButton.r_value)
             NumberButton.l_value = str(resultWindow_value)
             NumberButton.r_value = ""
             NumberButton.temp = ""
             OperationButton.op_type = "none"
-            
-            
             
 class  Window(QWidget):
     def __init__(self):
@@ -130,8 +143,13 @@ class  Window(QWidget):
         self.setWindowTitle("Python Calculator")
         self.initUI()
         
-    def initUI(self):
+    def resize_buttons(self, layout):
+        for i in range(layout.count()):
+            widget = layout.itemAt(i).widget()
+            if isinstance(widget, QPushButton):
+                widget.setFixedSize(100, 100)  
         
+    def initUI(self):
         # Create an outer layout
         outerLayout = QVBoxLayout()
         
@@ -143,9 +161,9 @@ class  Window(QWidget):
         historyWindow.setReadOnly(True)
         topLayout.addRow("History:", historyWindow)
         
-        currentEquation = QLineEdit()
-        currentEquation.setReadOnly(True)
-        topLayout.addRow("Current Equation:", currentEquation)
+        currentEquationWindow = QLineEdit()
+        currentEquationWindow.setReadOnly(True)
+        topLayout.addRow("Current Equation:", currentEquationWindow)
         
         # Add a label and a line edit to the layout
         resultWindow = QLineEdit()
@@ -159,71 +177,71 @@ class  Window(QWidget):
         # Loop adding numerical buttons (1:9)
         for x in range(2,-1,-1):
             for y in range(0,3):
-                buttonN = NumberButton(f"{y*3+x+1}")
-                buttonN.setText(f"{y*3+x+1}")
-                optionsLayout.addWidget(buttonN, y, x)
-                buttonN.pressed.connect(lambda name=buttonN.name: buttonN.take_number(historyWindow, name, historyWindow_value))
+                buttonNumber = NumberButton(f"{y*3+x+1}")
+                buttonNumber.setText(f"{y*3+x+1}")
+                optionsLayout.addWidget(buttonNumber, y, x)
+                buttonNumber.pressed.connect(lambda name=buttonNumber.name: buttonNumber.take_number(historyWindow, currentEquationWindow, name, historyWindow_value))
         
         # Loop adding basic arithemtic buttons
         for x in range(4):
             match x:
                 case 0:
-                    button = OperationButton("+")
-                    button.setText("+")
-                    optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
+                    buttonOperator = OperationButton("+")
+                    buttonOperator.setText("+")
+                    optionsLayout.addWidget(buttonOperator,3,x)
+                    buttonOperator.pressed.connect(lambda name=buttonOperator.name: buttonOperator.take_operator(historyWindow, currentEquationWindow, name, historyWindow_value))
                     
-                    clearHistorybutton = ClearHistoryButton("clear")
-                    clearHistorybutton.setText("clear history")
-                    optionsLayout.addWidget(clearHistorybutton,x,3)
-                    clearHistorybutton.pressed.connect(lambda: clearHistorybutton.clear_history(historyWindow))    
+                    buttonClear = ClearButton("clear")
+                    buttonClear.setText("clear")
+                    optionsLayout.addWidget(buttonClear,x,3)
+                    buttonClear.pressed.connect(lambda: buttonClear.clear_equation(currentEquationWindow))    
                                     
-                    button = OperationButton("*")
-                    button.setText("*")
-                    optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
+                    buttonOperator = OperationButton("*")
+                    buttonOperator.setText("*")
+                    optionsLayout.addWidget(buttonOperator,4,x)
+                    buttonOperator.pressed.connect(lambda name=buttonOperator.name: buttonOperator.take_operator(historyWindow, currentEquationWindow, name, historyWindow_value))
                 case 1:
-                    buttonN = NumberButton("0")
-                    buttonN.setText("0")
-                    optionsLayout.addWidget(buttonN,3,x)
-                    buttonN.pressed.connect(lambda name=buttonN.name: buttonN.take_number(historyWindow, name, historyWindow_value))
+                    buttonNumber = NumberButton("0")
+                    buttonNumber.setText("0")
+                    optionsLayout.addWidget(buttonNumber,3,x)
+                    buttonNumber.pressed.connect(lambda name=buttonNumber.name: buttonNumber.take_number(historyWindow, currentEquationWindow, name, historyWindow_value))
                     
                     backButton = BackButton("back")
                     backButton.setText("back")
                     optionsLayout.addWidget(backButton,x,3)
-                    backButton.clicked.connect(lambda: backButton.back(historyWindow))
+                    backButton.clicked.connect(lambda: backButton.back(historyWindow, currentEquationWindow))
                     
-                    button = NumberButton(".")
-                    button.setText(".")
-                    optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.take_number(historyWindow, name, historyWindow_value))
+                    buttonNumber = NumberButton(".")
+                    buttonNumber.setText(".")
+                    optionsLayout.addWidget(buttonNumber,4,x)
+                    buttonNumber.pressed.connect(lambda name=buttonNumber.name: buttonNumber.take_number(historyWindow, currentEquationWindow, name, historyWindow_value))
                 case 2:
-                    button = OperationButton("-")
-                    button.setText("-")
-                    optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))                     
+                    buttonOperator = OperationButton("-")
+                    buttonOperator.setText("-")
+                    optionsLayout.addWidget(buttonOperator,3,x)
+                    buttonOperator.pressed.connect(lambda name=buttonOperator.name: buttonOperator.take_operator(historyWindow, currentEquationWindow, name, historyWindow_value))                     
                     
                     resetButton = ResetButton("reset")
                     resetButton.setText("reset")
                     optionsLayout.addWidget(resetButton,x,3)
-                    resetButton.clicked.connect(lambda: resetButton.reset(historyWindow, resultWindow))
+                    resetButton.clicked.connect(lambda: resetButton.reset(historyWindow, resultWindow, currentEquationWindow))
                     
-                    button = OperationButton("/")
-                    button.setText("/")
-                    optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))        
+                    buttonOperator = OperationButton("/")
+                    buttonOperator.setText("/")
+                    optionsLayout.addWidget(buttonOperator,4,x)
+                    buttonOperator.pressed.connect(lambda name=buttonOperator.name: buttonOperator.take_operator(historyWindow, currentEquationWindow, name, historyWindow_value))        
                 case 3:
-                    button = OperationButton("=")
-                    button.setText("=")
-                    optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.equals_operation(resultWindow, resultWindow_value))
+                    buttonOperator = OperationButton("=")
+                    buttonOperator.setText("=")
+                    optionsLayout.addWidget(buttonOperator,3,x)
+                    buttonOperator.pressed.connect(lambda name=buttonOperator.name: buttonOperator.equals_operation(resultWindow, currentEquationWindow, resultWindow_value))
                     
-                    button = OperationButton("\u221A")
-                    button.setText("\u221A")
-                    optionsLayout.addWidget(button,4,x)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value)) 
+                    buttonOperator = OperationButton("^")
+                    buttonOperator.setText("x^x")
+                    optionsLayout.addWidget(buttonOperator,4,x)
+                    buttonOperator.pressed.connect(lambda name=buttonOperator.name: buttonOperator.take_operator(historyWindow, currentEquationWindow, name, historyWindow_value)) 
                 case _:
-                    logging.warning("Arithmetic button adder error!")
+                    logging.warning("Arithmetic buttonOperator adder error!")
                     
         
         # # Nest the inner layouts into the outer layout
@@ -236,9 +254,21 @@ class  Window(QWidget):
 def main():
     app = QApplication(sys.argv)
     screen_resolution = app.desktop().screenGeometry()
-    # [IDEA] Add here dynamic windows size based on screen resolution
     screen_width, screen_height = screen_resolution.width(), screen_resolution.height()
     window = Window()
+    window.setGeometry(0,0,screen_width//8,screen_height//4)
+    
+    # Calculate center point of screen
+    center_x = screen_width // 2
+    center_y = screen_height // 2
+    
+    # Adjust center point by half the width and height of the window
+    window_x = center_x - window.width() // 2
+    window_y = center_y - window.height() // 2
+    
+    # Move window to adjusted center point
+    window.move(window_x, window_y)
+    
     window.show()
     sys.exit(app.exec_())
 
