@@ -11,10 +11,6 @@ from PyQt5.QtWidgets import (
 )
 import sys, logging
 
-#add other variable that holds whole operation as a string and put it somewhere, ...
-# ...instead of only the result
-#Temporary solution using global variables
-
 historyWindow_value = ""
 resultWindow_value = ""
 
@@ -27,7 +23,6 @@ class NumberButton(QPushButton):
     l_value = ""
     r_value = ""
     temp = ""
-    
         
     def take_number(self, historyWindow, name, historyWindow_value):
         if OperationButton.op_type == "none":
@@ -35,48 +30,97 @@ class NumberButton(QPushButton):
             historyWindow_value += name
             NumberButton.l_value = historyWindow_value
             historyWindow.setText(historyWindow_value)
-            print(NumberButton.l_value)
         else:
             historyWindow_value = historyWindow.text()
             NumberButton.temp += name
             NumberButton.r_value = NumberButton.temp
-            historyWindow_value += NumberButton.r_value
+            historyWindow_value += name
             historyWindow.setText(historyWindow_value)
-            print(NumberButton.r_value)
+            
+class ResetButton(QPushButton):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    def reset(self, historyWindow, resultWindow):
+        # Reset the text in the history and result windows
+        historyWindow.setText("")
+        resultWindow.setText("")
+
+        # Reset the variables in the NumberButton and OperationButton classes
+        NumberButton.temp = ""
+        NumberButton.r_value = ""
+        OperationButton.op_type = "none"
+        OperationButton.temp = ""
         
+class ClearHistoryButton(QPushButton):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    def clear_history(self, historyWindow):
+        # Reset the text in the history window
+        historyWindow.setText("")
         
+class BackButton(QPushButton):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+
+    def back(self, historyWindow):
+        # Check if the history window is not empty
+        if historyWindow.text():
+            # Remove the last character from the history window
+            historyWindow.setText(historyWindow.text()[:-1])
+
+            # Remove the last character from the variables in the NumberButton class
+            if NumberButton.temp:
+                NumberButton.temp = NumberButton.temp[:-1]
+            if NumberButton.r_value:
+                NumberButton.r_value = NumberButton.r_value[:-1]
+
 class OperationButton(QPushButton):
     def __init__(self, name):
         super().__init__()
         self.name = name
     
     op_type = "none"
+    temp = ""
+    
         
     # [IDEA] doesnt work when you add - or + before any number is given
     def take_operator(self, historyWindow, name, historyWindow_value):
         if OperationButton.op_type ==  "none":
-            historyWindow_value = historyWindow.text()
-            historyWindow_value += name
-            OperationButton.op_type = name
-            historyWindow.setText(historyWindow_value)
+                historyWindow_value = historyWindow.text()
+                historyWindow_value += name
+                historyWindow.setText(historyWindow_value)
+                OperationButton.op_type = name
             
     def equals_operation(self, resultWindow, resultWindow_value):
         if OperationButton.op_type == "+":
-            print(NumberButton.l_value)
             resultWindow_value = float(NumberButton.l_value) + float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+
         elif OperationButton.op_type == "-":
             resultWindow_value = float(NumberButton.l_value) - float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+
         elif OperationButton.op_type == "*":
             resultWindow_value = float(NumberButton.l_value) * float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+
         elif OperationButton.op_type == "/":
             resultWindow_value = float(NumberButton.l_value) / float(NumberButton.r_value)
             resultWindow.setText(str(resultWindow_value))
+
         else:
             logging.warning("Equals operation error!")
-        OperationButton.op_type = ""
+        
+        if NumberButton.r_value != "" and NumberButton.l_value != "":
+            NumberButton.l_value = str(resultWindow_value)
+            NumberButton.r_value = ""
+            NumberButton.temp = ""
+            OperationButton.op_type = "none"
             
             
             
@@ -97,7 +141,11 @@ class  Window(QWidget):
         # Add a label and a line edit to the layout
         historyWindow = QLineEdit()
         historyWindow.setReadOnly(True)
-        topLayout.addRow("Equation:", historyWindow)
+        topLayout.addRow("History:", historyWindow)
+        
+        currentEquation = QLineEdit()
+        currentEquation.setReadOnly(True)
+        topLayout.addRow("Current Equation:", currentEquation)
         
         # Add a label and a line edit to the layout
         resultWindow = QLineEdit()
@@ -125,11 +173,11 @@ class  Window(QWidget):
                     optionsLayout.addWidget(button,3,x)
                     button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                     
-                    button = OperationButton("clear")
-                    button.setText("clear")
-                    optionsLayout.addWidget(button,x,3)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
-                    
+                    clearHistorybutton = ClearHistoryButton("clear")
+                    clearHistorybutton.setText("clear history")
+                    optionsLayout.addWidget(clearHistorybutton,x,3)
+                    clearHistorybutton.pressed.connect(lambda: clearHistorybutton.clear_history(historyWindow))    
+                                    
                     button = OperationButton("*")
                     button.setText("*")
                     optionsLayout.addWidget(button,4,x)
@@ -140,10 +188,10 @@ class  Window(QWidget):
                     optionsLayout.addWidget(buttonN,3,x)
                     buttonN.pressed.connect(lambda name=buttonN.name: buttonN.take_number(historyWindow, name, historyWindow_value))
                     
-                    button = OperationButton("back")
-                    button.setText("back")
-                    optionsLayout.addWidget(button,x,3)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
+                    backButton = BackButton("back")
+                    backButton.setText("back")
+                    optionsLayout.addWidget(backButton,x,3)
+                    backButton.clicked.connect(lambda: backButton.back(historyWindow))
                     
                     button = NumberButton(".")
                     button.setText(".")
@@ -155,10 +203,10 @@ class  Window(QWidget):
                     optionsLayout.addWidget(button,3,x)
                     button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))                     
                     
-                    button = OperationButton("reset")
-                    button.setText("reset")
-                    optionsLayout.addWidget(button,x,3)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
+                    resetButton = ResetButton("reset")
+                    resetButton.setText("reset")
+                    optionsLayout.addWidget(resetButton,x,3)
+                    resetButton.clicked.connect(lambda: resetButton.reset(historyWindow, resultWindow))
                     
                     button = OperationButton("/")
                     button.setText("/")
@@ -168,7 +216,6 @@ class  Window(QWidget):
                     button = OperationButton("=")
                     button.setText("=")
                     optionsLayout.addWidget(button,3,x)
-                    button.pressed.connect(lambda name=button.name: button.take_operator(historyWindow, name, historyWindow_value))
                     button.pressed.connect(lambda name=button.name: button.equals_operation(resultWindow, resultWindow_value))
                     
                     button = OperationButton("\u221A")
